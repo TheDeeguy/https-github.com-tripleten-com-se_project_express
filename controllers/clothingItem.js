@@ -2,6 +2,7 @@ const ClothingItem = require("../models/clothingItem");
 
 const {
   BAD_REQUEST,
+  FORBIDDEN,
   NOT_FOUND,
   INTERNAL_SERVER_ERROR,
 } = require("../utils/errors");
@@ -43,13 +44,25 @@ const getItems = (req, res) => {
 };
 
 // DELETE /items/:itemId
+// DELETE /items/:itemId
 const deleteItem = (req, res) => {
   const { itemId } = req.params;
 
-  ClothingItem.findByIdAndDelete(itemId)
+  ClothingItem.findById(itemId)
     .orFail(new Error("Item not found"))
     .then((item) => {
-      res.status(200).send({ data: item });
+      if (!item.owner.equals(req.user._id)) {
+        return res.status(FORBIDDEN).send({
+          message: "You do not have permission to delete this item",
+        });
+      }
+
+      return ClothingItem.findByIdAndDelete(itemId);
+    })
+    .then((item) => {
+      if (item) {
+        res.status(200).send({ data: item });
+      }
     })
     .catch((err) => {
       console.error(err);
@@ -71,7 +84,6 @@ const deleteItem = (req, res) => {
       });
     });
 };
-
 // PUT /items/:itemId/likes
 const likeItem = (req, res) => {
   const { itemId } = req.params;
