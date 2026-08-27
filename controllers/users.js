@@ -4,6 +4,7 @@ const { JWT_SECRET } = require("../utils/config");
 
 const {
   BAD_REQUEST,
+  UNAUTHORIZED,
   NOT_FOUND,
   CONFLICT,
   INTERNAL_SERVER_ERROR,
@@ -12,20 +13,30 @@ const User = require("../models/user");
 
 // POST /users
 const createUser = (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, name, avatar } = req.body;
 
-  bcrypt
+  if (!email || !password) {
+    return res.status(BAD_REQUEST).send({
+      message: "Email and password are required",
+    });
+  }
+
+  return bcrypt
     .hash(password, 10)
     .then((hashedPassword) =>
       User.create({
         email,
         password: hashedPassword,
+        name,
+        avatar,
       })
     )
     .then((user) =>
       res.status(201).send({
         _id: user._id,
         email: user.email,
+        name: user.name,
+        avatar: user.avatar,
       })
     )
     .catch((err) => {
@@ -39,7 +50,7 @@ const createUser = (req, res) => {
 
       if (err.name === "ValidationError") {
         return res.status(BAD_REQUEST).send({
-          message: err.message,
+          message: "Invalid user data",
         });
       }
 
@@ -62,8 +73,15 @@ const login = (req, res) => {
     })
     .catch((err) => {
       console.error(err);
-      res.status(401).send({
-        message: "Incorrect email or password",
+
+      if (err.message === "Incorrect email or password") {
+        return res.status(UNAUTHORIZED).send({
+          message: "Incorrect email or password",
+        });
+      }
+
+      return res.status(INTERNAL_SERVER_ERROR).send({
+        message: "Failed to log in",
       });
     });
 };
@@ -115,7 +133,7 @@ const updateProfile = (req, res) => {
 
       if (err.name === "ValidationError") {
         return res.status(BAD_REQUEST).send({
-          message: err.message,
+          message: "Invalid profile data",
         });
       }
 

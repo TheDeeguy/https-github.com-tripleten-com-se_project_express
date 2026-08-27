@@ -19,9 +19,7 @@ const createItem = (req, res) => {
       console.error(err);
 
       if (err.name === "ValidationError") {
-        return res.status(BAD_REQUEST).send({
-          message: err.message,
-        });
+        return res.status(BAD_REQUEST).send({ message: "Invalid data" });
       }
 
       return res.status(INTERNAL_SERVER_ERROR).send({
@@ -33,7 +31,9 @@ const createItem = (req, res) => {
 // GET /items
 const getItems = (req, res) => {
   ClothingItem.find({})
-    .then((items) => res.status(200).send(items))
+    .then((items) => {
+      res.send(items);
+    })
     .catch((err) => {
       console.error(err);
 
